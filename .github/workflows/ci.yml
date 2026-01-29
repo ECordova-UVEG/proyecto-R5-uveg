@@ -19,7 +19,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - name: Install Dependencies
-      run: npm ci
+      run: npm ci --legacy-peer-deps
     - name: Run Unit Tests
       # Ejecuta los tests una sola vez (sin watch) usando Chrome sin interfaz gráfica
       run: npm run test -- --no-watch --no-progress --browsers=ChromeHeadless
