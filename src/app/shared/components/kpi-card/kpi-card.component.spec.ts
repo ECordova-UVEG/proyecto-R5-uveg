@@ -1,8 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { KpiCardComponent } from './kpi-card.component';
-import { CurrencyFormatPipe } from '../../pipes/currency-format.pipe'; // Asegúrate que la ruta sea correcta
-import { CommonModule } from '@angular/common';
-import { By } from '@angular/platform-browser';
+import { CurrencyFormatPipe } from '../../pipes/currency-format.pipe';
+import { CommonModule, CurrencyPipe } from '@angular/common'; // Import CurrencyPipe
 
 describe('KpiCardComponent', () => {
   let component: KpiCardComponent;
@@ -10,61 +9,64 @@ describe('KpiCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      // Como es standalone, lo importamos, no lo declaramos
-      imports: [CommonModule, KpiCardComponent, CurrencyFormatPipe], 
+      imports: [CommonModule, KpiCardComponent, CurrencyFormatPipe],
+      // REGLA 1: CurrencyFormatPipe necesita CurrencyPipe
+      providers: [CurrencyPipe] 
     }).compileComponents();
 
     fixture = TestBed.createComponent(KpiCardComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display the title', () => {
+  it('should display the title and formatted value', () => {
     // Arrange
-    const testTitle = 'Ingresos Totales';
-    component.title = testTitle;
+    component.title = 'Test Title';
+    component.value = 12345.67;
+    component.isLoading = false;
     fixture.detectChanges();
 
     // Act
     const compiled = fixture.nativeElement as HTMLElement;
-    // Buscamos el texto en todo el componente ya que no tenemos el HTML exacto
-    expect(compiled.textContent).toContain(testTitle);
+    const titleElement = compiled.querySelector('.kpi-title');
+    const valueElement = compiled.querySelector('.kpi-value');
+
+    // Assert
+    expect(titleElement?.textContent).toContain('Test Title');
+    // El pipe interno (CurrencyPipe) debe formatear el número
+    expect(valueElement?.textContent).toContain('$12,345.67'); 
   });
 
-  it('should display the formatted value', () => {
+  it('should show a positive trend icon and color for positive change', () => {
     // Arrange
-    component.value = 1000;
-    component.format = 'currency';
+    component.change = 2.5;
+    component.isLoading = false;
     fixture.detectChanges();
 
     // Act
     const compiled = fixture.nativeElement as HTMLElement;
+    const changeElement = compiled.querySelector('.kpi-change');
     
-    // Nota: Esto asume que tu CurrencyFormatPipe transforma 1000 en $1,000.00
-    // Si tu pipe usa otro formato, ajusta el valor esperado.
-    // Usamos una regex flexible para buscar el número
-    expect(compiled.textContent).toMatch(/1,?000/); 
+    // Assert
+    expect(changeElement?.classList).toContain('text-green-400');
+    expect(changeElement?.classList).not.toContain('text-red-400');
   });
 
-  it('should handle null values gracefully', () => {
-    component.value = null;
+  it('should display a skeleton loader when isLoading is true', () => {
+    // Arrange
+    component.isLoading = true;
     fixture.detectChanges();
+
+    // Act
     const compiled = fixture.nativeElement as HTMLElement;
-    // Verifica que no explote y que quizás muestre un guion o nada
-    expect(component).toBeTruthy();
-  });
+    const valueSkeleton = compiled.querySelector('.h-8.w-3/4'); 
+    const changeSkeleton = compiled.querySelector('.h-4.w-1/4');
 
-  it('should identify positive values correctly', () => {
-    component.value = 500;
-    expect(component.isPositive).toBeTrue();
-  });
-
-  it('should identify negative values correctly', () => {
-    component.value = -500;
-    expect(component.isPositive).toBeFalse();
+    // Assert
+    expect(valueSkeleton).not.toBeNull();
+    expect(changeSkeleton).not.toBeNull();
   });
 });

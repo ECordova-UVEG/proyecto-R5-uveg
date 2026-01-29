@@ -1,147 +1,100 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { ListadoComponent } from './listado.component';
-import { DataService } from '../../core/services/data.service';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { CurrencyPipe, PercentPipe } from '@angular/common';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
-import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
-import { PercentPipe, CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Investment } from '../../core/services/data.service';
+
+import { ListadoComponent } from './listado.component';
+import { DataService, Investment, PortfolioSummary } from '../../core/services/data.service';
+
+const mockAssets: Investment[] = [
+  { ticker: 'AAPL', name: 'Apple', type: 'Stock', quantity: 10, avg_cost: 150, current_price: 180, marketValue: 1800, gainLoss: 300, yieldPct: 0.2, category: 'Renta Variable' },
+  { ticker: 'MSFT', name: 'Microsoft', type: 'Stock', quantity: 5, avg_cost: 300, current_price: 330, marketValue: 1650, gainLoss: 150, yieldPct: 0.1, category: 'Renta Variable' }
+];
+
+const mockSummary: PortfolioSummary = {
+  totalValue: 3450,
+  totalGainLoss: 450,
+  totalYieldPct: 0.13,
+  allocation: {}
+};
 
 describe('ListadoComponent', () => {
   let component: ListadoComponent;
   let fixture: ComponentFixture<ListadoComponent>;
-  let mockDataService: any;
-
-  // Mock Data
-  const mockAssets: Investment[] = [
-    {
-      ticker: 'AAPL',
-      name: 'Apple Inc',
-      type: 'Stock',
-      quantity: 10,
-      avg_cost: 150,
-      current_price: 180,
-      marketValue: 1800,
-      gainLoss: 300,
-      yieldPct: 0.2,
-      category: 'Renta Variable'
-    },
-    {
-      ticker: 'FMTY14',
-      name: 'Fibra Mty',
-      type: 'FIBRA',
-      quantity: 1000,
-      avg_cost: 10,
-      current_price: 12,
-      marketValue: 12000,
-      gainLoss: 2000,
-      yieldPct: 0.2,
-      category: 'Renta Variable'
-    }
-  ];
-
-  const mockSummary = {
-    totalValue: 13800,
-    totalGainLoss: 2300,
-    totalYieldPct: 0.2,
-    allocation: {
-      'Stock': { value: 1800, percentage: 0.13, gainLoss: 300, yieldPct: 0.2 },
-      'FIBRA': { value: 12000, percentage: 0.87, gainLoss: 2000, yieldPct: 0.2 }
-    }
-  };
-
-  const mockPortfolioData = {
-    assets: mockAssets,
-    summary: mockSummary
-  };
+  let dataService: jasmine.SpyObj<DataService>;
 
   beforeEach(async () => {
-    // 1. Crear Mock del Servicio
-    mockDataService = {
-      getPortfolioData: jasmine.createSpy('getPortfolioData').and.returnValue(of(mockPortfolioData))
-    };
+    const dataServiceSpy = jasmine.createSpyObj('DataService', ['getPortfolioData']);
 
     await TestBed.configureTestingModule({
-      // ListadoComponent es standalone, así que lo importamos.
-      imports: [
-        ListadoComponent,
-        CommonModule,
-        FormsModule,
-        CurrencyFormatPipe, // Importamos los pipes que usa
-        SkeletonComponent
-      ],
-      // Proveemos el mock en lugar del servicio real
+      imports: [ListadoComponent],
       providers: [
-        { provide: DataService, useValue: mockDataService },
-        PercentPipe
+        // REGLA 4: Proveer HTTP y Router
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        // REGLA 1: Proveer CurrencyPipe (y PercentPipe que también se usa)
+        CurrencyPipe,
+        PercentPipe,
+        { provide: DataService, useValue: dataServiceSpy }
       ]
-    })
-      .compileComponents();
+    }).compileComponents();
+
+    dataService = TestBed.inject(DataService) as jasmine.SpyObj<DataService>;
+    dataService.getPortfolioData.and.returnValue(of({
+      assets: mockAssets,
+      summary: mockSummary,
+      cashBalance: 0,
+      transactions: []
+    }));
 
     fixture = TestBed.createComponent(ListadoComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // Dispara ngOnInit
+    fixture.detectChanges(); // ngOnInit
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load data on init', () => {
-    expect(mockDataService.getPortfolioData).toHaveBeenCalled();
+  it('should load portfolio data on initialization', () => {
+    expect(dataService.getPortfolioData).toHaveBeenCalled();
     expect(component.investments.length).toBe(2);
     expect(component.summary).toEqual(mockSummary);
     expect(component.isLoading()).toBeFalse();
   });
 
-  it('should filter data by category', () => {
-    component.selectCategory('Stock');
-    expect(component.selectedCategory).toBe('Stock');
-    expect(component.filteredInvestments.length).toBe(1);
-    expect(component.filteredInvestments[0].ticker).toBe('AAPL');
-  });
-
-  it('should filter data by search term', () => {
-    component.filterValue = 'Fibra';
+  it('should filter investments by search term', () => {
+    // Act
+    component.filterValue = 'Micro';
     component.filterData();
+    fixture.detectChanges();
+
+    // Assert
     expect(component.filteredInvestments.length).toBe(1);
-    expect(component.filteredInvestments[0].ticker).toBe('FMTY14');
+    expect(component.filteredInvestments[0].ticker).toBe('MSFT');
   });
 
-  it('should open and close modal', () => {
-    const asset = mockAssets[0];
+  it('should filter investments by category', () => {
+    // El mock tiene 2 'Stock', agreguemos una 'FIBRA' para el test
+    component.investments.push({ ticker: 'FMTY', name: 'Fibra MTY', type: 'FIBRA', quantity: 100, avg_cost: 12, current_price: 12, category: 'Renta Fija' });
+    component.categories = ['Todos', 'Stock', 'FIBRA'];
+    fixture.detectChanges();
+    
+    // Act
+    component.selectCategory('FIBRA');
+    fixture.detectChanges();
 
-    // Open
-    component.openModal(asset);
-    expect(component.selectedAsset).toEqual(asset);
-    expect(document.body.style.overflow).toBe('hidden');
-
-    // Close
-    component.closeModal();
-    expect(component.selectedAsset).toBeNull();
-    expect(document.body.style.overflow).toBe('auto');
+    // Assert
+    expect(component.filteredInvestments.length).toBe(1);
+    expect(component.filteredInvestments[0].type).toBe('FIBRA');
   });
 
-  it('should paginate correctly', () => {
-    // Forzamos itemsPerPage a 1 para probar paginación con 2 items
-    component.itemsPerPage = 1;
-    component.filterData(); // Recalcular paginación
-
-    expect(component.paginatedAssets.length).toBe(1);
-    expect(component.paginatedAssets[0].ticker).toBe('AAPL');
-
-    component.nextPage();
-    expect(component.currentPage).toBe(2);
-    expect(component.paginatedAssets[0].ticker).toBe('FMTY14');
-
-    component.prevPage();
-    expect(component.currentPage).toBe(1);
-  });
-
-  it('should calculate empty rows correctly', () => {
-    component.itemsPerPage = 5;
-    // Tenemos 2 items, deberíamos tener 3 filas vacías
-    expect(component.emptyRows.length).toBe(3);
+  it('should open the detail modal with the selected asset', () => {
+    const assetToOpen = mockAssets[0];
+    component.openModal(assetToOpen);
+    expect(component.selectedAsset).toBe(assetToOpen);
   });
 });

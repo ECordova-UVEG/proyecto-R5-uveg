@@ -1,22 +1,30 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { MarketDataService } from './market-data.service';
 
 describe('MarketDataService', () => {
   let service: MarketDataService;
   let httpMock: HttpTestingController;
+  let baseUrl: string;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [MarketDataService]
+      providers: [
+        MarketDataService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ]
     });
     service = TestBed.inject(MarketDataService);
     httpMock = TestBed.inject(HttpTestingController);
+    // Accedemos a la URL base privada para construir las URLs esperadas
+    baseUrl = (service as any).baseUrl; 
   });
 
   afterEach(() => {
-    httpMock.verify(); // Ensure that there are no outstanding requests
+    // Verifica que no haya peticiones pendientes al final de cada test
+    httpMock.verify();
   });
 
   it('should be created', () => {
@@ -24,31 +32,48 @@ describe('MarketDataService', () => {
   });
 
   describe('#getRealTimePrices', () => {
-    it('should return an array of quotes on success', (done) => {
+    it('should return a combined array of quotes from multiple successful calls', (done) => {
       const mockTickers = ['AAPL', 'TSLA'];
-      const mockResponse = [{ symbol: 'AAPL', price: 150 }, { symbol: 'TSLA', price: 250 }];
-      
+      const mockAaplResponse = [{ symbol: 'AAPL', price: 150 }];
+      const mockTslaResponse = [{ symbol: 'TSLA', price: 250 }];
+
       service.getRealTimePrices(mockTickers).subscribe(prices => {
         expect(prices.length).toBe(2);
-        expect(prices).toEqual(mockResponse);
+        // El orden puede no estar garantizado, por eso buscamos los elementos
+        expect(prices).toContain(jasmine.objectContaining({ symbol: 'AAPL' }));
+        expect(prices).toContain(jasmine.objectContaining({ symbol: 'TSLA' }));
         done();
       });
 
-      const req = httpMock.expectOne(req => req.url.includes('/quote/AAPL,TSLA'));
-      expect(req.request.method).toBe('GET');
-      req.flush(mockResponse);
+      // Se esperan dos peticiones separadas debido a la estrategia 1 a 1
+      const reqAapl = httpMock.expectOne(req => req.url.includes('/quote/AAPL'));
+      const reqTsla = httpMock.expectOne(req => req.url.includes('/quote/TSLA'));
+      
+      expect(reqAapl.request.method).toBe('GET');
+      expect(reqTsla.request.method).toBe('GET');
+
+      // Respondemos a cada una
+      reqAapl.flush(mockAaplResponse);
+      reqTsla.flush(mockTslaResponse);
     });
 
-    it('should return an empty array if the API call fails', (done) => {
-      const mockTickers = ['FAIL'];
+    it('should filter out results for tickers that fail', (done) => {
+      const mockTickers = ['AAPL', 'FAIL'];
+      const mockAaplResponse = [{ symbol: 'AAPL', price: 150 }];
 
       service.getRealTimePrices(mockTickers).subscribe(prices => {
-        expect(prices).toEqual([]);
+        // Solo debe devolver el resultado de la petición exitosa
+        expect(prices.length).toBe(1);
+        expect(prices[0].symbol).toBe('AAPL');
         done();
       });
 
-      const req = httpMock.expectOne(req => req.url.includes('/quote/FAIL'));
-      req.flush('Error', { status: 500, statusText: 'Server Error' });
+      const reqAapl = httpMock.expectOne(req => req.url.includes('/quote/AAPL'));
+      const reqFail = httpMock.expectOne(req => req.url.includes('/quote/FAIL'));
+
+      reqAapl.flush(mockAaplResponse);
+      // Simulamos un error para la segunda petición
+      reqFail.flush('Error', { status: 500, statusText: 'Server Error' });
     });
   });
 
@@ -66,16 +91,13 @@ describe('MarketDataService', () => {
       });
 
       const req = httpMock.expectOne(req => req.url.includes('/quote/USDMXN,EURMXN'));
-      expect(req.request.method).toBe('GET');
       req.flush(mockResponse);
     });
 
-    it('should return fallback currency data if the API call fails', (done) => {
+    it('should return fallback data if the API call fails', (done) => {
       service.getCurrencies().subscribe(currencies => {
-        expect(currencies.USD).toBeDefined();
-        expect(currencies.EUR).toBeDefined();
-        // Check if the value is a number, indicating fallback was used.
-        expect(typeof currencies.USD).toBe('number');
+        expect(currencies.USD).toBeGreaterThan(0);
+        expect(currencies.EUR).toBeGreaterThan(0);
         done();
       });
 

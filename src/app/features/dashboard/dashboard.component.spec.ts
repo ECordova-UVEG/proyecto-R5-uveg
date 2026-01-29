@@ -1,69 +1,87 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { CurrencyPipe } from '@angular/common';
+import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+
 import { DashboardComponent } from './dashboard.component';
 import { DataService } from '../../core/services/data.service';
 import { MarketDataService } from '../../core/services/market-data.service';
-import { of } from 'rxjs';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
 
-// Mock de datos básicos
 const mockPortfolio = {
-  summary: { totalValue: 1000, totalGainLoss: 50 },
-  assets: [{ ticker: 'AAPL', quantity: 10, marketValue: 1500, type: 'Stock' }],
-  cashBalance: 500
+  summary: { totalValue: 50000, totalGainLoss: 2500, totalYieldPct: 0.05, allocation: {} },
+  assets: [{ ticker: 'AAPL', name: 'Apple', type: 'Stock', quantity: 10, avg_cost: 150, current_price: 155, category: 'Renta Variable' }],
+  cashBalance: 10000,
+  transactions: []
 };
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
-  let marketServiceMock: any;
-  let dataServiceMock: any;
+  let dataService: jasmine.SpyObj<DataService>;
+  let marketService: jasmine.SpyObj<MarketDataService>;
 
   beforeEach(async () => {
-    // 1. Crear Mocks (Espías)
-    marketServiceMock = {
-      getCurrencies: jasmine.createSpy('getCurrencies').and.returnValue(of({ USD: 20, EUR: 22 })),
-      getRealTimePrices: jasmine.createSpy('getRealTimePrices').and.returnValue(of([]))
-    };
+    // Crear spies para los servicios
+    const dataServiceSpy = jasmine.createSpyObj('DataService', 
+      ['getPortfolioData', 'updateAssetPrices', 'getPortfolioHistory'],
+      { 
+        // Usar un "getter" para mockData para que sea configurable
+        get mockData() { return { assets: mockPortfolio.assets }; },
+        exchangeRates: { usd: 0, eur: 0 }
+      }
+    );
+    const marketServiceSpy = jasmine.createSpyObj('MarketDataService', ['getCurrencies', 'getRealTimePrices']);
 
-    dataServiceMock = {
-      mockData: { assets: [] }, // Estado inicial
-      getPortfolioData: jasmine.createSpy('getPortfolioData').and.returnValue(of(mockPortfolio)),
-      getPortfolioHistory: jasmine.createSpy('getPortfolioHistory').and.returnValue([]),
-      updateAssetPrices: jasmine.createSpy('updateAssetPrices'),
-      exchangeRates: { usd: 0, eur: 0 }
-    };
-
+    // Configurar el TestBed
     await TestBed.configureTestingModule({
-      imports: [
-        DashboardComponent, // Es standalone, se importa, no se declara
-        HttpClientTestingModule, 
-        CurrencyFormatPipe 
-      ],
+      imports: [DashboardComponent], // Componente Standalone
       providers: [
-        { provide: MarketDataService, useValue: marketServiceMock },
-        { provide: DataService, useValue: dataServiceMock }
-      ]
+        // REGLA 4: Proveer HTTP y Router
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        // REGLA 1: Proveer CurrencyPipe
+        CurrencyPipe,
+        { provide: DataService, useValue: dataServiceSpy },
+        { provide: MarketDataService, useValue: marketServiceSpy },
+      ],
     }).compileComponents();
+
+    // Configurar el comportamiento de los spies
+    dataService = TestBed.inject(DataService) as jasmine.SpyObj<DataService>;
+    marketService = TestBed.inject(MarketDataService) as jasmine.SpyObj<MarketDataService>;
+    
+    dataService.getPortfolioData.and.returnValue(of(mockPortfolio));
+    dataService.getPortfolioHistory.and.returnValue([]);
+    marketService.getCurrencies.and.returnValue(of({ USD: 20.5, EUR: 21.8 }));
+    marketService.getRealTimePrices.and.returnValue(of([{ symbol: 'AAPL', price: 155 }]));
 
     fixture = TestBed.createComponent(DashboardComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // Dispara ngOnInit
+    fixture.detectChanges(); // Ejecuta ngOnInit
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load portfolio data on init', () => {
-    expect(dataServiceMock.getPortfolioData).toHaveBeenCalled();
-    expect(component.totalPortfolioValue).toBe(1000);
+  it('should load initial portfolio data on init', () => {
+    expect(dataService.getPortfolioData).toHaveBeenCalled();
+    expect(component.totalPortfolioValue).toBe(mockPortfolio.summary.totalValue);
+    expect(component.dailyGainLoss).toBe(mockPortfolio.summary.totalGainLoss);
   });
 
-  it('should try to fetch market data on init', () => {
-    expect(marketServiceMock.getCurrencies).toHaveBeenCalled();
-    // getRealTimePrices se llama solo si hay assets, en el mockPortfolio hay uno
-    // Nota: ngOnInit llama a fetchMarketData que usa this.dataService.mockData.assets.
-    // Asegúrate de que tu mockData tenga assets si quieres probar esa línea.
+  it('should fetch and update market prices on init', () => {
+    // fetchMarketData es llamado en ngOnInit
+    expect(marketService.getRealTimePrices).toHaveBeenCalledWith(['AAPL']);
+    expect(dataService.updateAssetPrices).toHaveBeenCalledWith([{ symbol: 'AAPL', price: 155 }]);
+  });
+
+  it('should fetch and set currency prices on init', () => {
+    expect(marketService.getCurrencies).toHaveBeenCalled();
+    expect(component.usdPrice).toBe(20.5);
+    expect(component.eurPrice).toBe(21.8);
   });
 });
