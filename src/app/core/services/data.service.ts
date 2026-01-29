@@ -194,7 +194,6 @@ export class DataService {
         this.mockData = { ...INITIAL_SEED_DATA };
       }
     } else {
-      console.log('Initializing with seed data...');
       this.mockData = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
       this._saveToStorage();
     }
@@ -335,7 +334,6 @@ export class DataService {
     if (dataChanged) {
       this._saveToStorage();
       this.processAndEmitData(this.mockData);
-      console.log('⚡ Precios de mercado actualizados');
     }
   }
 
@@ -378,6 +376,5 @@ export class DataService {
     this.mockData = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
     this._saveToStorage();
     this.processAndEmitData(this.mockData);
-    console.log('🔄 DataService: Datos reseteados a estado inicial.');
   }
 }

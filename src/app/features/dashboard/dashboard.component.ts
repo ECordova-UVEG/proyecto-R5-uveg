@@ -122,11 +122,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.marketService.getRealTimePrices(tickers).subscribe(prices => {
         // Solo actualizamos si la API devolvió un array con datos reales
         if (prices && prices.length > 0) {
-          console.log('✅ Mercado conectado: Precios actualizados.');
           this.dataService.updateAssetPrices(prices);
-        } else {
-          console.log('ℹ️ Usando datos internos (Sin conexión a API).');
-        }
+        } 
         
         // Finalizamos carga independientemente del resultado
         this.isLoading.set(false); 

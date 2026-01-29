@@ -64,7 +64,6 @@ export class ListadoComponent implements OnInit {
           }
         },
         error: (e) => {
-          console.error(e);
           this.isLoading.set(false);
         }
       });
