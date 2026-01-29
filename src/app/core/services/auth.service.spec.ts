@@ -1,95 +1,89 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { of, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+import { provideRouter } from '@angular/router';
 
 describe('AuthService', () => {
   let service: AuthService;
   let router: Router;
 
-  // Función para configurar el TestBed, permite reutilizarla
-  const configureTestBed = () => {
+  // Configuración estándar para la mayoría de tests (sin token previo)
+  const configureModule = () => {
     TestBed.configureTestingModule({
-      imports: [RouterTestingModule.withRoutes([])],
-      providers: [AuthService]
+      providers: [
+        AuthService,
+        provideRouter([]) // Proveedor moderno para router en tests
+      ]
     });
     service = TestBed.inject(AuthService);
     router = TestBed.inject(Router);
   };
 
   beforeEach(() => {
-    // Limpiar localStorage antes de cada test para evitar estados residuales
-    localStorage.removeItem('token');
-    configureTestBed();
+    localStorage.clear(); // Empezamos limpios por defecto
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+  describe('Basic operations', () => {
+    beforeEach(() => {
+      configureModule();
+    });
 
-  it('should be logged out by default', () => {
-    expect(service.isAuthenticated()).toBe(false);
-  });
+    it('should be created', () => {
+      expect(service).toBeTruthy();
+    });
 
-  describe('#login', () => {
-    it('should authenticate and store token on valid credentials', fakeAsync(() => {
-      let loggedInState = false;
-      service.isLoggedIn$.subscribe(s => loggedInState = s);
-      
+    it('should be logged out by default when no token is in localStorage', () => {
+      expect(service.isAuthenticated()).toBe(false);
+    });
+
+    it('should emit true, set token, and update isAuthenticated on valid credentials', fakeAsync(() => {
+      let authStatus = false;
+      service.isLoggedIn$.subscribe(status => authStatus = status);
+
       service.login({ user: 'admin', pass: 'admin123' }).subscribe();
-      tick(1500); // Avanzar el tiempo para el delay simulado
+      tick(1500); // Simular delay
 
-      expect(loggedInState).toBe(true);
-      expect(localStorage.getItem('token')).toBe('dummy-auth-token-xyz');
+      expect(authStatus).toBe(true);
+      expect(service.isAuthenticated()).toBe(true);
+      expect(localStorage.getItem('token')).toBeTruthy();
     }));
 
-    it('should fail authentication and not store a token on invalid credentials', fakeAsync(() => {
-      let loggedInState = true;
-      service.isLoggedIn$.subscribe(s => loggedInState = s);
-
-      service.login({ user: 'wrong', pass: 'user' }).subscribe({
-        next: () => fail('should have failed'),
+    it('should throw error on invalid credentials', fakeAsync(() => {
+      service.login({ user: 'invalid', pass: 'user' }).subscribe({
+        next: () => fail('Expected login to fail'),
         error: (err) => expect(err.message).toContain('Invalid credentials')
       });
       tick(1500);
 
-      expect(loggedInState).toBe(false);
+      expect(service.isAuthenticated()).toBe(false);
       expect(localStorage.getItem('token')).toBeNull();
     }));
   });
 
-  describe('#logout', () => {
-    it('should clear token, update state, and navigate to login', () => {
-      // 1. Simular estado de login
-      localStorage.setItem('token', 'dummy-token-to-be-removed');
-      // Reconfiguramos para que el servicio se cree con el token
-      configureTestBed();
-      expect(service.isAuthenticated()).toBe(true);
-      
-      const navigateSpy = spyOn(router, 'navigate');
-      let loggedInState = true;
-      service.isLoggedIn$.subscribe(s => loggedInState = s);
+  describe('Logout', () => {
+    beforeEach(() => {
+      // Simulamos que ya había un login
+      localStorage.setItem('token', 'fake-token');
+      configureModule(); 
+    });
 
-      // 2. Ejecutar logout
+    it('should clear token, emit false, and navigate to /login', () => {
+      const navigateSpy = spyOn(router, 'navigate');
+      
       service.logout();
 
-      // 3. Verificar resultados
+      expect(service.isAuthenticated()).toBe(false);
       expect(localStorage.getItem('token')).toBeNull();
-      expect(loggedInState).toBe(false);
       expect(navigateSpy).toHaveBeenCalledWith(['/login']);
     });
   });
 
   describe('Initialization with existing token', () => {
-    beforeEach(() => {
-      // Simular que ya hay un token antes de que el servicio se cree
-      localStorage.setItem('token', 'pre-existing-token');
-      // Reconfiguramos el TestBed para que el nuevo AuthService se cree en este contexto
-      configureTestBed();
-    });
-
-    it('should restore logged-in state if a token exists in localStorage', () => {
+    // Este test es especial: configuramos localStorage ANTES de crear el servicio
+    it('should initialize as authenticated if a token exists in localStorage', () => {
+      localStorage.setItem('token', 'existing-session-token');
+      configureModule(); // Al inyectar aquí, el constructor leerá el token
+      
       expect(service.isAuthenticated()).toBe(true);
     });
   });

@@ -1,32 +1,31 @@
 /****************************************************************************************
  * MARKET DATA SERVICE
  *
+ * Responsabilidad: Interactuar con la API externa de datos de mercado (Financial Modeling Prep).
+ *
  * Estrategia de API: "Peticiones 1 a 1"
  * --------------------------------------------------------------------------------------
- * Este servicio está diseñado para funcionar con el plan GRATUITO de financialmodelingprep.com.
- * El plan gratuito a menudo impone límites, como no permitir pedir múltiples tickers
- * en una sola llamada (ej. /quote/AAPL,TSLA,MSFT).
+ * Este servicio está diseñado para funcionar con el plan GRATUITO de la API, que a menudo
+ * impone límites y no permite peticiones masivas (ej. /quote/AAPL,TSLA,MSFT).
  *
- * Para evitar estos límites, implementamos una estrategia defensiva:
- * 1.  **Iteración y Peticiones Individuales:** En lugar de una llamada masiva, se itera
- *     sobre la lista de tickers y se genera una petición HTTP individual para cada uno.
- * 2.  **`forkJoin`:** Se utiliza `forkJoin` de RxJS para ejecutar todas estas peticiones
- *     en paralelo, esperando a que TODAS terminen (o fallen) para emitir un único
- *     resultado consolidado.
- * 3.  **`catchError` Individual:** Cada petición individual está "blindada" con su
- *     propio `catchError`. Si la API falla para un ticker específico (ej. un 404),
- *     en lugar de cancelar todo el `forkJoin`, simplemente devolvemos `of(null)`.
- *     Esto asegura que la falla de un solo activo no impida que los demás se carguen.
- * 4.  **Filtrado Final:** Una vez que `forkJoin` emite, se filtra el array de respuestas
- *     para eliminar cualquier `null` que haya resultado de una petición fallida.
- *
- * Este enfoque proporciona máxima resiliencia y compatibilidad con planes de API restrictivos.
+ * Para solventar esto, se implementa una estrategia defensiva:
+ * 1.  Peticiones Individuales: Se itera sobre los tickers y se genera una petición HTTP
+ *     individual para cada uno.
+ * 2.  `forkJoin`: Ejecuta todas las peticiones en paralelo y emite un único resultado
+ *     consolidado cuando todas terminan.
+ * 3.  `catchError` Individual: Cada petición está "blindada". Si una falla, no cancela
+ *     el resto, asegurando máxima resiliencia.
  ****************************************************************************************/
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
+/**
+ * @description
+ * Servicio Singleton responsable de obtener datos de mercado en tiempo real
+ * desde una API externa. Implementa estrategias de fallback para manejar errores de API.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -37,18 +36,22 @@ export class MarketDataService {
   private baseUrl = 'https://financialmodelingprep.com/api/v3';
 
   /**
+   * @description
    * Obtiene los precios en tiempo real para una lista de tickers.
-   * Utiliza una estrategia de peticiones individuales para compatibilidad con el plan gratuito.
+   * Devuelve solo los resultados de las peticiones exitosas.
+   * @param tickers - Un array de strings con los tickers a consultar (ej. ['AAPL', 'TSLA']).
+   * @returns Un Observable que emite un array de objetos con los datos de precios.
    */
   getRealTimePrices(tickers: string[]): Observable<any[]> {
-    if (!tickers || tickers.length === 0) return of([]);
+    if (!tickers || tickers.length === 0) {
+      return of([]);
+    }
 
     const requests = tickers.map(ticker => 
       this.http.get<any[]>(`${this.baseUrl}/quote/${ticker}?apikey=${this.apiKey}`).pipe(
         // Blindaje: Si un ticker falla, no rompemos toda la cadena.
         // Devolvemos null y lo filtramos más tarde.
-        catchError(error => {
-          console.warn(`No se pudo obtener el precio para ${ticker}. Usando datos existentes.`);
+        catchError(() => {
           return of(null);
         })
       )
@@ -61,8 +64,10 @@ export class MarketDataService {
   }
 
   /**
+   * @description
    * Obtiene las tasas de cambio para USD y EUR contra MXN.
-   * Si la petición falla, devuelve un valor simulado para mantener la app funcional.
+   * Si la petición a la API falla, devuelve un valor simulado para mantener la app funcional.
+   * @returns Un Observable que emite un objeto con las tasas de cambio (ej. { USD: 20.5, EUR: 21.8 }).
    */
   getCurrencies(): Observable<{ USD: number, EUR: number }> {
     return this.http.get<any[]>(`${this.baseUrl}/quote/USDMXN,EURMXN?apikey=${this.apiKey}`).pipe(
@@ -78,8 +83,7 @@ export class MarketDataService {
         return result;
       }),
       // Blindaje: Si la API de divisas falla por completo, devolvemos un objeto simulado.
-      catchError(err => {
-        console.error('Error fetching currencies, returning fallback data.', err);
+      catchError(() => {
         return of({ 
           USD: 20.50 + Math.random() * 0.1, 
           EUR: 21.80 + Math.random() * 0.1 

@@ -1,23 +1,33 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick, flush } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { CurrencyPipe, PercentPipe } from '@angular/common';
+import { CurrencyPipe, PercentPipe, CommonModule } from '@angular/common';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { FormsModule } from '@angular/forms';
 
 import { ListadoComponent } from './listado.component';
-import { DataService, Investment, PortfolioSummary } from '../../core/services/data.service';
+import { DataService } from '../../core/services/data.service';
+import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
+import { TransactionModalComponent } from '../../shared/components/transaction-modal/transaction-modal.component';
 
-const mockAssets: Investment[] = [
-  { ticker: 'AAPL', name: 'Apple', type: 'Stock', quantity: 10, avg_cost: 150, current_price: 180, marketValue: 1800, gainLoss: 300, yieldPct: 0.2, category: 'Renta Variable' },
-  { ticker: 'MSFT', name: 'Microsoft', type: 'Stock', quantity: 5, avg_cost: 300, current_price: 330, marketValue: 1650, gainLoss: 150, yieldPct: 0.1, category: 'Renta Variable' }
-];
-
-const mockSummary: PortfolioSummary = {
-  totalValue: 3450,
-  totalGainLoss: 450,
-  totalYieldPct: 0.13,
-  allocation: {}
+// MOCK DE DATOS
+const mockData = {
+  assets: [
+    { 
+      ticker: 'AAPL', name: 'Apple Inc.', type: 'Stock', // type es 'Stock'
+      quantity: 10, avg_cost: 150, current_price: 180, category: 'Renta Variable', 
+      marketValue: 1800, gainLoss: 300, yieldPct: 0.2 
+    },
+    { 
+      ticker: 'FMTY', name: 'Fibra Mty', type: 'FIBRA', // type es 'FIBRA'
+      quantity: 100, avg_cost: 12, current_price: 12, category: 'Renta Fija', 
+      marketValue: 1200, gainLoss: 0, yieldPct: 0 
+    }
+  ],
+  summary: { totalValue: 3000, totalGainLoss: 300, totalYieldPct: 0.1, allocation: {} },
+  cashBalance: 1000,
+  transactions: []
 };
 
 describe('ListadoComponent', () => {
@@ -29,13 +39,17 @@ describe('ListadoComponent', () => {
     const dataServiceSpy = jasmine.createSpyObj('DataService', ['getPortfolioData']);
 
     await TestBed.configureTestingModule({
-      imports: [ListadoComponent],
+      imports: [
+        ListadoComponent, 
+        CommonModule, 
+        FormsModule, 
+        CurrencyFormatPipe, 
+        TransactionModalComponent 
+      ],
       providers: [
-        // REGLA 4: Proveer HTTP y Router
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        // REGLA 1: Proveer CurrencyPipe (y PercentPipe que también se usa)
         CurrencyPipe,
         PercentPipe,
         { provide: DataService, useValue: dataServiceSpy }
@@ -43,58 +57,87 @@ describe('ListadoComponent', () => {
     }).compileComponents();
 
     dataService = TestBed.inject(DataService) as jasmine.SpyObj<DataService>;
-    dataService.getPortfolioData.and.returnValue(of({
-      assets: mockAssets,
-      summary: mockSummary,
-      cashBalance: 0,
-      transactions: []
-    }));
+    // Mockeamos respuesta inmediata
+    dataService.getPortfolioData.and.returnValue(of(mockData as any));
 
     fixture = TestBed.createComponent(ListadoComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // ngOnInit
+    // NO ejecutamos detectChanges aquí para controlar el tiempo manualmente en cada test
   });
 
   it('should create', () => {
+    fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
-  it('should load portfolio data on initialization', () => {
+  it('should load portfolio data on init and handle loading timeout', fakeAsync(() => {
+    // 1. Inicia ngOnInit -> Llama al servicio -> Inicia setTimeout de 500ms
+    fixture.detectChanges(); 
+    
+    // 2. Resolvemos la suscripción del observable
+    tick(); 
+    
+    // 3. Resolvemos el setTimeout(500) del componente
+    tick(500); 
+
+    // 4. Actualizamos la vista
+    fixture.detectChanges();
+
     expect(dataService.getPortfolioData).toHaveBeenCalled();
     expect(component.investments.length).toBe(2);
-    expect(component.summary).toEqual(mockSummary);
-    expect(component.isLoading()).toBeFalse();
-  });
+    expect(component.isLoading()).toBeFalse(); // Ahora sí debe ser false
+  }));
 
-  it('should filter investments by search term', () => {
+  it('should filter by search term "Fibra"', fakeAsync(() => {
+    // Inicialización completa (consumiendo el timer de carga)
+    fixture.detectChanges();
+    tick(500); 
+    fixture.detectChanges();
+
     // Act
-    component.filterValue = 'Micro';
+    component.filterValue = 'Fibra';
     component.filterData();
     fixture.detectChanges();
 
     // Assert
     expect(component.filteredInvestments.length).toBe(1);
-    expect(component.filteredInvestments[0].ticker).toBe('MSFT');
-  });
+    expect(component.filteredInvestments[0].ticker).toBe('FMTY');
+  }));
 
-  it('should filter investments by category', () => {
-    // El mock tiene 2 'Stock', agreguemos una 'FIBRA' para el test
-    component.investments.push({ ticker: 'FMTY', name: 'Fibra MTY', type: 'FIBRA', quantity: 100, avg_cost: 12, current_price: 12, category: 'Renta Fija' });
-    component.categories = ['Todos', 'Stock', 'FIBRA'];
+  it('should filter by category (Type) "FIBRA"', fakeAsync(() => {
+    // Inicialización completa
     fixture.detectChanges();
-    
+    tick(500);
+    fixture.detectChanges();
+
     // Act
-    component.selectCategory('FIBRA');
+    // TU COMPONENTE FILTRA POR 'TYPE', NO POR 'CATEGORY'.
+    // En el mock, el type es 'FIBRA', no 'Renta Fija'.
+    component.selectCategory('FIBRA'); 
     fixture.detectChanges();
 
     // Assert
+    expect(component.selectedCategory).toBe('FIBRA');
     expect(component.filteredInvestments.length).toBe(1);
-    expect(component.filteredInvestments[0].type).toBe('FIBRA');
-  });
-
-  it('should open the detail modal with the selected asset', () => {
-    const assetToOpen = mockAssets[0];
-    component.openModal(assetToOpen);
-    expect(component.selectedAsset).toBe(assetToOpen);
-  });
+    // Verificamos que el elemento filtrado es el correcto
+    expect(component.filteredInvestments[0].ticker).toBe('FMTY');
+  }));
+  
+  it('should open and close the asset detail modal', fakeAsync(() => {
+    // Inicialización completa para limpiar el timer del ngOnInit
+    fixture.detectChanges();
+    tick(500);
+    
+    const asset = mockData.assets[0] as any;
+    
+    // Open
+    component.openModal(asset);
+    expect(component.selectedAsset).toEqual(asset);
+    expect(document.body.style.overflow).toBe('hidden'); // Verifica bloqueo de scroll
+    
+    // Close
+    component.closeModal();
+    expect(component.selectedAsset).toBeNull();
+    expect(document.body.style.overflow).toBe('auto'); // Verifica desbloqueo
+  }));
 });

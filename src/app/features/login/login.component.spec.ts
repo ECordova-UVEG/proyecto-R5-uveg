@@ -32,7 +32,7 @@ describe('LoginComponent', () => {
     component = fixture.componentInstance;
     authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
-
+    
     fixture.detectChanges();
   });
 
@@ -43,35 +43,38 @@ describe('LoginComponent', () => {
   it('should call authService.login and navigate on successful submission', fakeAsync(() => {
     // Arrange
     authService.login.and.returnValue(of(true));
-    component.loginForm.setValue({ username: 'admin', password: 'admin123' });
+    // IMPORTANTE: Usamos valores que pasen tus validadores (ej. minLength)
+    component.loginForm.setValue({ username: 'adminUser', password: 'password123' });
 
     // Act
     component.onSubmit();
-    tick(); // Simulate the passage of time for async operations like finalize
+    tick(); // Esperar a que se complete el observable
 
     // Assert
-    expect(authService.login).toHaveBeenCalledWith({ user: 'admin', pass: 'admin123' });
+    expect(authService.login).toHaveBeenCalledWith({ user: 'adminUser', pass: 'password123' });
     expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
   }));
 
   it('should display an error message on failed login', fakeAsync(() => {
-    // Arrange
+    // Arrange: El servicio devuelve error
     authService.login.and.returnValue(throwError(() => new Error('Invalid credentials')));
-    component.loginForm.setValue({ username: 'wrong', password: 'user' });
+    
+    // IMPORTANTE: El formulario DEBE ser válido para que intente llamar al login
+    component.loginForm.setValue({ username: 'validUser', password: 'validPassword' });
 
     // Act
     component.onSubmit();
-    tick();
-    fixture.detectChanges();
+    tick(); // Esperar respuesta del servicio
+    fixture.detectChanges(); // Actualizar el HTML para mostrar el error
 
     // Assert
-    expect(authService.login).toHaveBeenCalled();
+    expect(authService.login).toHaveBeenCalled(); // Ahora sí debe llamarse
     expect(router.navigate).not.toHaveBeenCalled();
     expect(component.errorMessage).toBe('Credenciales incorrectas.');
   }));
 
   it('should not submit if the form is invalid', () => {
-    // Arrange
+    // Arrange: Campos vacíos (Inválido)
     component.loginForm.setValue({ username: '', password: '' });
 
     // Act
@@ -79,6 +82,7 @@ describe('LoginComponent', () => {
 
     // Assert
     expect(authService.login).not.toHaveBeenCalled();
+    // Aquí esperamos el mensaje de validación local, no el del backend
     expect(component.errorMessage).toContain('Por favor, completa todos los campos');
   });
 });
