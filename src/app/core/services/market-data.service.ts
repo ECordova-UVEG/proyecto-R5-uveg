@@ -33,7 +33,7 @@ export class MarketDataService {
   private http = inject(HttpClient);
   
   private apiKey = 'Fusw8WYYOB2oUVNdVeaPe9H0LS2MwCKz';
-  private baseUrl = 'https://financialmodelingprep.com/api/v3';
+  private baseUrl = 'https://financialmodelingprep.com/stable';
 
   /**
    * @description
@@ -48,9 +48,7 @@ export class MarketDataService {
     }
 
     const requests = tickers.map(ticker => 
-      this.http.get<any[]>(`${this.baseUrl}/quote/${ticker}?apikey=${this.apiKey}`).pipe(
-        // Blindaje: Si un ticker falla, no rompemos toda la cadena.
-        // Devolvemos null y lo filtramos más tarde.
+      this.http.get<any[]>(`${this.baseUrl}/quote?symbol=${ticker}&apikey=${this.apiKey}`).pipe(
         catchError(() => {
           return of(null);
         })
@@ -59,35 +57,52 @@ export class MarketDataService {
 
     // forkJoin ejecuta todas las peticiones en paralelo y emite un solo valor cuando todas terminan.
     return forkJoin(requests).pipe(
-      map(responses => responses.flat().filter(item => item !== null))
+      map(responses => {
+        return responses
+          .flat()
+          .filter(item => item !== null && item !== undefined);
+      })
     );
   }
 
   /**
    * @description
    * Obtiene las tasas de cambio para USD y EUR contra MXN.
-   * Si la petición a la API falla, devuelve un valor simulado para mantener la app funcional.
+   * Si la petición a la API falla, devuelve un valor simulado para mantener la app funcional. (DATOS DUMMY)
    * @returns Un Observable que emite un objeto con las tasas de cambio (ej. { USD: 20.5, EUR: 21.8 }).
    */
   getCurrencies(): Observable<{ USD: number, EUR: number }> {
-    return this.http.get<any[]>(`${this.baseUrl}/quote/USDMXN,EURMXN?apikey=${this.apiKey}`).pipe(
-      map(data => {
+    const pairs = ['USDMXN', 'EURMXN'];
+
+    // Generamos 2 peticiones separadas
+    const requests = pairs.map(pair => 
+      this.http.get<any[]>(`${this.baseUrl}/quote?symbol=${pair}&apikey=${this.apiKey}`).pipe(
+        catchError((err) => {
+          console.warn(`⚠️ Error obteniendo ${pair}`, err);
+          return of(null);
+        })
+      )
+    );
+
+    return forkJoin(requests).pipe(
+      map(responses => {
+        // Aplanamos las respuestas (cada API call devuelve un array)
+        const validData = responses
+          .flat()
+          .filter(item => item !== null && item !== undefined);
+
         const result = { USD: 0, EUR: 0 };
-        data?.forEach(item => {
+        
+        validData.forEach(item => {
           if (item.symbol === 'USDMXN') result.USD = item.price;
           if (item.symbol === 'EURMXN') result.EUR = item.price;
         });
-        // Si algún precio vino en cero, usar fallback
-        if (result.USD === 0) result.USD = 20.50 + Math.random() * 0.1;
-        if (result.EUR === 0) result.EUR = 21.80 + Math.random() * 0.1;
+
+        // Fallback: Si no llegaron datos o llegaron en 0, usamos simulación para fines ilustrativos.
+        if (!result.USD) result.USD = 20.50 + Math.random() * 0.1;
+        if (!result.EUR) result.EUR = 21.80 + Math.random() * 0.1;
+        
         return result;
-      }),
-      // Blindaje: Si la API de divisas falla por completo, devolvemos un objeto simulado.
-      catchError(() => {
-        return of({ 
-          USD: 20.50 + Math.random() * 0.1, 
-          EUR: 21.80 + Math.random() * 0.1 
-        });
       })
     );
   }
