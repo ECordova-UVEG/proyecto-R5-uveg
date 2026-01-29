@@ -1,0 +1,17 @@
+/* Forzar color de texto en leyendas de ApexCharts */
+::ng-deep .apexcharts-legend-text {
+    color: #cbd5e1 !important; 
+    font-family: inherit !important;
+}
+
+/* Forzar tooltip oscuro y limpio */
+::ng-deep .apexcharts-tooltip {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+::ng-deep .apexcharts-tooltip-title {
+    background: #0f172a !important;
+    border-bottom: 1px solid #334155 !important;
+}

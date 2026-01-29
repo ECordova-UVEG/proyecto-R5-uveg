@@ -1,0 +1,20 @@
+<div class="bg-slate-800 rounded-lg shadow-lg border border-slate-700 p-6">
+  <div class="flex items-center">
+    <div class="flex-shrink-0" *ngIf="icon">
+      <!-- Icon placeholder -->
+    </div>
+    <div class="ml-4">
+      <p class="text-sm font-medium text-slate-300 truncate">{{ title }}</p>
+      <p class="text-2xl font-semibold text-white">
+        @if (showSign && isPositive) {<span>+</span>}
+        @if (format === 'currency') {
+          {{ value | currencyFormat }}
+        } @else if (format === 'number') {
+          {{ value | number }}
+        } @else {
+          {{ value }}
+        }
+      </p>
+    </div>
+  </div>
+</div>

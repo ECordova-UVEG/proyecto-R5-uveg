@@ -1,0 +1,110 @@
+[
+  {
+    "ticker": "AAPL",
+    "name": "Apple Inc.",
+    "quantity": 150,
+    "current_price": 185.30,
+    "avg_cost": 172.50,
+    "type": "Stock",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "MSFT",
+    "name": "Microsoft Corporation",
+    "quantity": 100,
+    "current_price": 425.10,
+    "avg_cost": 410.80,
+    "type": "Stock",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "NVDA",
+    "name": "NVIDIA Corporation",
+    "quantity": 50,
+    "current_price": 950.75,
+    "avg_cost": 920.00,
+    "type": "Stock",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "AMZN",
+    "name": "Amazon.com, Inc.",
+    "quantity": 75,
+    "current_price": 180.45,
+    "avg_cost": 175.20,
+    "type": "Stock",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "FMTY14",
+    "name": "Fibra Monterrey",
+    "quantity": 5000,
+    "current_price": 12.30,
+    "avg_cost": 11.95,
+    "type": "FIBRA",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "DANOS13",
+    "name": "Fibra Danhos",
+    "quantity": 2500,
+    "current_price": 25.60,
+    "avg_cost": 26.10,
+    "type": "FIBRA",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "VOO",
+    "name": "Vanguard S&P 500 ETF",
+    "quantity": 100,
+    "current_price": 450.20,
+    "avg_cost": 435.00,
+    "type": "ETF",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "QQQ",
+    "name": "Invesco QQQ Trust",
+    "quantity": 120,
+    "current_price": 400.00,
+    "avg_cost": 380.75,
+    "type": "ETF",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "CETES28",
+    "name": "Cetes 28 Días",
+    "quantity": 10000,
+    "current_price": 10.0,
+    "avg_cost": 10.0,
+    "type": "Bonos",
+    "category": "Renta Fija"
+  },
+  {
+    "ticker": "UDIBONO",
+    "name": "Bonos de Desarrollo del Gobierno Federal",
+    "quantity": 500,
+    "current_price": 105.5,
+    "avg_cost": 102.0,
+    "type": "Bonos",
+    "category": "Renta Fija"
+  },
+  {
+    "ticker": "BTC",
+    "name": "Bitcoin",
+    "quantity": 0.5,
+    "current_price": 68500.00,
+    "avg_cost": 65200.00,
+    "type": "Crypto",
+    "category": "Renta Variable"
+  },
+  {
+    "ticker": "ETH",
+    "name": "Ethereum",
+    "quantity": 10,
+    "current_price": 3500.00,
+    "avg_cost": 3350.00,
+    "type": "Crypto",
+    "category": "Renta Variable"
+  }
+]

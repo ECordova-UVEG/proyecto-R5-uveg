@@ -1,0 +1,261 @@
+@if (summary) {
+<div class="mb-6">
+  <h1 class="text-3xl font-bold text-white">Portafolio Activo</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+    <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-lg p-6 border border-slate-700 shadow-lg">
+      <h2 class="text-slate-400 text-sm font-medium uppercase tracking-wider">Valor Total</h2>
+      <p class="text-3xl font-bold text-white mt-1">{{ summary.totalValue | currencyFormat }}</p>
+      <div class="font-mono text-sm mt-2 px-2 py-1 rounded-md inline-block border border-opacity-20"
+        [ngClass]="summary.totalGainLoss >= 0 ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500' : 'bg-rose-900/30 text-rose-400 border-rose-500'">
+        {{ summary.totalGainLoss >= 0 ? '+' : '' }}{{ summary.totalGainLoss | currencyFormat }} 
+        ({{ summary.totalYieldPct | percent:'1.2-2' }})
+      </div>
+    </div>
+
+    @for(cat of objectKeys(summary.allocation); track cat) {
+    <div class="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors">
+      <div class="flex justify-between items-center">
+        <h3 class="text-slate-400 text-sm font-medium uppercase">{{ cat }}</h3>
+        <span class="text-white font-semibold bg-slate-700/50 px-2 py-0.5 rounded text-xs">
+          {{ summary.allocation[cat].percentage | percent:'1.0-0' }}
+        </span>
+      </div>
+      <div class="w-full bg-slate-700/30 rounded-full h-1.5 mt-3 mb-3">
+        <div class="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-400"
+          [style.width]="(summary.allocation[cat].percentage * 100) + '%'"></div>
+      </div>
+      <p class="text-xl font-bold text-white">{{ summary.allocation[cat].value | currencyFormat }}</p>
+      <div class="flex items-center gap-2 mt-2 text-sm font-medium">
+        <span [ngClass]="summary.allocation[cat].gainLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'"
+          class="flex items-center gap-1">
+          {{ summary.allocation[cat].gainLoss >= 0 ? '▲' : '▼' }}
+          {{ summary.allocation[cat].gainLoss | currencyFormat }}
+        </span>
+      </div>
+    </div>
+    }
+  </div>
+</div>
+}
+
+<div class="mb-4">
+  <div class="flex flex-wrap items-center gap-2 mb-4">
+    @for(cat of categories; track cat) {
+    <button (click)="selectCategory(cat)" [ngClass]="{
+          'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/20': selectedCategory === cat,
+          'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white': selectedCategory !== cat
+        }" class="px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200">
+      {{ cat }}
+    </button>
+    }
+  </div>
+
+  <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="relative w-full md:w-auto">
+      <input type="text" placeholder="Buscar activo..."
+        class="w-full md:w-72 p-2.5 pl-10 bg-slate-900 text-white border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-500"
+        [(ngModel)]="filterValue" (ngModelChange)="filterData()" />
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </div>
+    <div class="w-full md:w-auto">
+      <button
+        class="w-full md:w-auto py-2.5 px-5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+        (click)="exportData()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Exportar CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="overflow-hidden border border-slate-800 rounded-xl bg-slate-900 shadow-xl">
+  <div class="overflow-y-auto max-h-[600px] relative">
+    @if (paginatedAssets.length > 0) {
+    <table class="min-w-full">
+      <thead>
+        <tr>
+          <th class="sticky top-0 z-20 bg-slate-800/90 backdrop-blur-md p-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">Activo</th>
+          <th class="sticky top-0 z-20 bg-slate-800/90 backdrop-blur-md p-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">Precio</th>
+          <th class="sticky top-0 z-20 bg-slate-800/90 backdrop-blur-md p-4 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">Rango 52 Sem</th>
+          <th class="sticky top-0 z-20 bg-slate-800/90 backdrop-blur-md p-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">Tenencia</th>
+          <th class="sticky top-0 z-20 bg-slate-800/90 backdrop-blur-md p-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">Valor Mercado</th>
+          <th class="sticky top-0 z-20 bg-slate-800/90 backdrop-blur-md p-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">Rendimiento</th>
+        </tr>
+      </thead>
+      <tbody class="text-slate-300 divide-y divide-slate-800/50">
+        @for (item of paginatedAssets; track item.ticker) {
+        <tr (click)="openModal(item)" class="group hover:bg-slate-800/60 transition-colors duration-200 cursor-pointer">
+          <td class="p-4 text-left">
+            <div class="flex items-center gap-3">
+              <div class="h-8 w-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500 border border-slate-700 group-hover:border-slate-600 group-hover:text-slate-300 transition-colors">
+                {{ item.ticker | slice:0:1 }}
+              </div>
+              <div>
+                <div class="font-bold text-white group-hover:text-blue-400 transition-colors">{{ item.ticker }}</div>
+                <div class="text-xs text-slate-500 max-w-[150px] truncate">{{ item.name }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="p-4 text-right font-mono text-sm">{{ item.current_price | currencyFormat:'MXN':'symbol':'1.2-2' }}</td>
+          <td class="p-4 text-center">
+            <div *ngIf="item.low52 && item.high52" class="flex items-center gap-2 text-[10px] text-slate-500 font-mono justify-center">
+              <span>{{ item.low52 | number:'1.0-0' }}</span>
+              <div class="relative h-1.5 w-24 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                <div class="absolute h-full bg-blue-500/80 rounded-full" [style.left.%]="0" [style.width.%]="100" style="opacity: 0.1;"></div>
+                <div class="absolute h-full w-1 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(96,165,250,0.8)]"
+                  [style.left.%]="(item.high52 ?? 0) > (item.low52 ?? 0) ? ((item.current_price - (item.low52 ?? 0)) / ((item.high52 ?? 0) - (item.low52 ?? 0)) * 100) : 50">
+                </div>
+              </div>
+              <span>{{ item.high52 | number:'1.0-0' }}</span>
+            </div>
+          </td>
+          <td class="p-4 text-right">
+            <div class="font-mono text-white">{{ item.quantity }}</div>
+            <div class="text-xs text-slate-500 font-mono">Avg: {{ item.avg_cost | currencyFormat:'MXN':'symbol':'1.0-0' }}</div>
+          </td>
+          <td class="p-4 text-right font-mono font-bold text-slate-200">{{ (item.marketValue ?? 0) | currencyFormat:'MXN':'symbol':'1.2-2' }}</td>
+          <td class="p-4 text-right">
+            <div class="font-mono font-medium" [ngClass]="(item.gainLoss ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+              {{ (item.gainLoss ?? 0) >= 0 ? '+' : '' }}{{ item.gainLoss | currencyFormat:'MXN':'symbol':'1.2-2' }}
+            </div>
+            <div class="text-xs font-mono mt-0.5" [ngClass]="(item.yieldPct ?? 0) >= 0 ? 'text-emerald-500/70' : 'text-rose-500/70'">
+              {{ (item.yieldPct ?? 0) | percent:'1.2-2' }}
+            </div>
+          </td>
+        </tr>
+        }
+        @for (placeholder of emptyRows; track $index) {
+        <tr class="h-[73px]">
+          <td colspan="6" class="p-4 border-b border-transparent">&nbsp;</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    } @else if (!isLoading() && filteredInvestments.length === 0) {
+    <div class="flex flex-col items-center justify-center py-20 text-slate-500">
+      <div class="bg-slate-800/50 p-4 rounded-full mb-4">
+        <svg class="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <h3 class="text-white font-medium">No encontramos "{{ filterValue }}"</h3>
+      <p class="text-sm text-slate-500 mt-1">Intenta con otro término o categoría.</p>
+      <button (click)="filterValue = ''; filterData()" class="mt-4 text-blue-400 hover:text-blue-300 text-sm font-medium hover:underline">
+        Limpiar filtros
+      </button>
+    </div>
+    } @else {
+    <div class="text-center p-20">
+      <h3 class="text-slate-400">Tu portafolio está vacío</h3>
+    </div>
+    }
+  </div>
+
+  <div class="border-t border-slate-800 bg-slate-900/50 p-4 flex items-center justify-between">
+    <span class="text-slate-500 text-xs font-mono">
+      {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredInvestments.length) }} de {{ filteredInvestments.length }} activos
+    </span>
+    <div class="flex gap-2">
+      <button (click)="prevPage()" [disabled]="currentPage === 1"
+        class="px-3 py-1.5 border border-slate-700 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-xs text-slate-300 transition-colors">
+        Anterior
+      </button>
+      <button (click)="nextPage()" [disabled]="currentPage * itemsPerPage >= filteredInvestments.length"
+        class="px-3 py-1.5 border border-slate-700 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-xs text-slate-300 transition-colors">
+        Siguiente
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (selectedAsset) {
+<div class="fixed inset-0 z-[100] flex items-center justify-center px-4">
+  <div (click)="closeModal()" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity animate-fade-in"></div>
+
+  <div class="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up transform transition-all flex flex-col max-h-[85vh]">
+
+    <div class="h-24 bg-gradient-to-r from-blue-900 to-slate-900 relative shrink-0">
+      <button (click)="closeModal()" class="absolute top-4 right-4 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-1 transition-all z-10">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div class="absolute -bottom-8 left-8">
+        <div class="h-16 w-16 rounded-xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center shadow-lg text-2xl font-bold text-white shadow-black/50">
+          {{ selectedAsset.ticker | slice:0:1 }}
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-10 pb-2 px-8 shrink-0">
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <h2 class="text-2xl font-bold text-white">{{ selectedAsset.ticker }}</h2>
+          <p class="text-slate-400 text-sm font-medium">{{ selectedAsset.name }}</p>
+        </div>
+        <div class="text-right">
+          <div class="text-xl font-mono text-white tracking-tight">{{ selectedAsset.current_price | currencyFormat:'MXN' }}</div>
+          <div class="text-sm font-bold" [class.text-emerald-400]="(selectedAsset.yieldPct || 0) >= 0"
+            [class.text-rose-400]="(selectedAsset.yieldPct || 0) < 0">
+            {{ (selectedAsset.yieldPct || 0) >= 0 ? '+' : '' }}{{ (selectedAsset.yieldPct || 0) | percent:'1.2-2' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-8 py-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Valor de Mercado</p>
+          <p class="text-lg font-semibold text-slate-200">{{ selectedAsset.marketValue | currencyFormat }}</p>
+        </div>
+        <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Tenencia</p>
+          <p class="text-lg font-semibold text-slate-200">{{ selectedAsset.quantity }} <span class="text-xs text-slate-500 font-normal">títulos</span></p>
+        </div>
+        <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Costo Promedio</p>
+          <p class="text-lg font-semibold text-slate-200">{{ selectedAsset.avg_cost | currencyFormat }}</p>
+        </div>
+        <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+          <p class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Ganancia / Pérdida</p>
+          <p class="text-lg font-semibold" [class.text-emerald-400]="(selectedAsset.gainLoss || 0) >= 0"
+            [class.text-rose-400]="(selectedAsset.gainLoss || 0) < 0">
+            {{ (selectedAsset.gainLoss || 0) | currencyFormat }}
+          </p>
+        </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 shrink-0 p-6 pt-4 border-t border-slate-800/50">
+      <button (click)="tradeFromDetail('BUY')"
+        class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-600/50 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        COMPRAR
+      </button>
+      <button (click)="tradeFromDetail('SELL')"
+        class="bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-600/50 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+        </svg>
+        VENDER
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+<app-transaction-modal
+  [isOpen]="showTradeModal"
+  [ticker]="tradeTicker"
+  [type]="tradeType"
+  (close)="showTradeModal = false"
+  (transactionCompleted)="filterData()">
+</app-transaction-modal>

@@ -1,0 +1,192 @@
+@if (isOpen) {
+  <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div (click)="onClose()" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity animate-fade-in"></div>
+
+    <div class="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up transition-all flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
+      
+      <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/90 backdrop-blur shrink-0">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span class="w-1.5 h-5 rounded-full" [ngClass]="currentType === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+          Nueva Operación
+        </h2>
+        <button (click)="onClose()" class="text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto">
+        
+        <div class="flex p-1 bg-slate-950/50 border border-slate-800 rounded-lg mb-5 h-9">
+          <button 
+            (click)="setType('BUY')"
+            class="flex-1 text-xs font-bold rounded transition-all flex items-center justify-center gap-2"
+            [class.bg-emerald-600]="currentType === 'BUY'"
+            [class.text-white]="currentType === 'BUY'"
+            [class.shadow-sm]="currentType === 'BUY'"
+            [class.text-slate-500]="currentType !== 'BUY'"
+            [class.hover:text-slate-300]="currentType !== 'BUY'">
+            COMPRAR
+          </button>
+          <button 
+            (click)="setType('SELL')"
+            class="flex-1 text-xs font-bold rounded transition-all flex items-center justify-center gap-2"
+            [class.bg-rose-600]="currentType === 'SELL'"
+            [class.text-white]="currentType === 'SELL'"
+            [class.shadow-sm]="currentType === 'SELL'"
+            [class.text-slate-500]="currentType !== 'SELL'"
+            [class.hover:text-slate-300]="currentType !== 'SELL'">
+            VENDER
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Activo</label>
+            @if (currentType === 'BUY') {
+              <div class="relative">
+                <input 
+                  [(ngModel)]="ticker" 
+                  (ngModelChange)="updateMarketData()"
+                  type="text" 
+                  placeholder="Ej. AAPL" 
+                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm uppercase font-mono focus:border-emerald-500 outline-none transition-colors placeholder-slate-600"
+                >
+                <div class="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">STOCK</div>
+              </div>
+            } @else {
+              <div class="relative">
+                <select 
+                  [(ngModel)]="ticker" 
+                  (ngModelChange)="updateMarketData()"
+                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-rose-500 appearance-none font-mono cursor-pointer"
+                >
+                  <option value="" disabled selected>Seleccionar...</option>
+                  @for(asset of dataService.mockData.assets; track asset.ticker) {
+                    <option [value]="asset.ticker">{{ asset.ticker }} ({{ asset.quantity }} disp.)</option>
+                  }
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Cantidad</label>
+              <input 
+                [(ngModel)]="qty" 
+                (ngModelChange)="calculateTotal()" 
+                type="number" 
+                placeholder="0" 
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+              >
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Precio Mercado</label>
+              <div class="relative">
+                <input 
+                  [value]="price" 
+                  readonly 
+                  type="number" 
+                  class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-400 text-sm outline-none cursor-not-allowed font-mono"
+                >
+                @if(price) {
+                  <div class="absolute right-2 top-0 bottom-0 flex items-center">
+                    <span class="bg-slate-800 text-[9px] px-1.5 py-0.5 rounded text-slate-500">MKT</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (currentType === 'SELL' && (qty || 0) > availableQty) {
+            <div class="text-[10px] text-rose-400 bg-rose-900/20 border border-rose-900/50 p-2 rounded flex items-center gap-2 animate-pulse">
+              <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <span>Error: Solo tienes <strong>{{ availableQty }}</strong> títulos.</span>
+            </div>
+          }
+          @if (currentType === 'BUY' && estimatedTotal > dataService.mockData.cashBalance) {
+            <div class="text-[10px] text-rose-400 bg-rose-900/20 border border-rose-900/50 p-2 rounded flex items-center gap-2 animate-pulse">
+              <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <span>Fondos insuficientes (Faltan {{ (estimatedTotal - dataService.mockData.cashBalance) | currency:'MXN' }})</span>
+            </div>
+          }
+
+          <div class="bg-slate-950/30 border border-slate-800 rounded-lg p-3 mt-2">
+            <div class="flex justify-between items-baseline mb-2">
+              <span class="text-[10px] text-slate-500 uppercase font-bold">
+                {{ currentType === 'BUY' ? 'Total a Pagar' : 'Total a Recibir' }}
+              </span>
+              <span class="text-lg font-bold text-white tracking-tight" 
+                    [class.text-emerald-400]="currentType === 'SELL'">
+                {{ estimatedTotal | currency:'MXN' }}
+              </span>
+            </div>
+
+            <div class="h-px bg-slate-800 w-full mb-2 opacity-50"></div>
+
+            <div class="flex justify-between items-center text-[10px]">
+              @if (currentType === 'BUY') {
+                <div class="flex flex-col">
+                  <span class="text-slate-500">Disponible</span>
+                  <span class="text-slate-300 font-mono">{{ dataService.mockData.cashBalance | currency:'MXN' }}</span>
+                </div>
+                <div class="text-slate-700">➜</div>
+                <div class="flex flex-col text-right">
+                  <span class="text-slate-500">Restante</span>
+                  <span class="font-mono font-bold" 
+                        [class.text-white]="(dataService.mockData.cashBalance - estimatedTotal) >= 0"
+                        [class.text-rose-500]="(dataService.mockData.cashBalance - estimatedTotal) < 0">
+                    {{ (dataService.mockData.cashBalance - estimatedTotal) | currency:'MXN' }}
+                  </span>
+                </div>
+              }
+              @if (currentType === 'SELL') {
+                <div class="flex flex-col">
+                  <span class="text-slate-500">Saldo Actual</span>
+                  <span class="text-slate-300 font-mono">{{ dataService.mockData.cashBalance | currency:'MXN' }}</span>
+                </div>
+                <div class="text-emerald-900">➜</div>
+                <div class="flex flex-col text-right">
+                  <span class="text-slate-500">Proyectado</span>
+                  <span class="font-mono font-bold text-emerald-400">
+                    {{ (dataService.mockData.cashBalance + estimatedTotal) | currency:'MXN' }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+
+        @if(errorMessage) {
+          <div class="mt-3 text-center text-xs text-rose-400 font-medium">
+            {{ errorMessage }}
+          </div>
+        }
+      </div>
+
+      <div class="px-5 py-4 bg-slate-800/30 border-t border-slate-800 shrink-0">
+        <button 
+          (click)="onSubmit()" 
+          [disabled]="isFormInvalid || isLoading || (currentType === 'SELL' && (qty || 0) > availableQty) || (currentType === 'BUY' && estimatedTotal > dataService.mockData.cashBalance) || !dataService.isMarketOpen"
+          class="w-full py-2.5 rounded-lg font-bold text-sm text-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/20"
+          [ngClass]="currentType === 'BUY' ? 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-500 active:bg-rose-700'"
+        >
+          @if (isLoading) {
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Procesando...</span>
+          } @else {
+            <span>{{ currentType === 'BUY' ? 'CONFIRMAR COMPRA' : 'CONFIRMAR VENTA' }}</span>
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

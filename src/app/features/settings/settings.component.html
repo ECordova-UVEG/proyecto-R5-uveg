@@ -1,0 +1,37 @@
+<div class="bg-slate-800 rounded-lg shadow-lg border border-slate-700 p-8">
+  <h1 class="text-3xl font-bold text-white mb-8">Configuración</h1>
+
+  <form class="space-y-6">
+    <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+      <span class="text-slate-300">Activar Notificaciones</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" class="sr-only peer" checked>
+        <div class="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+      <span class="text-slate-300">Forzar Modo Oscuro</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" class="sr-only peer" checked disabled>
+        <div class="w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 opacity-50"></div>
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+      <span class="text-slate-300">Habilitar Biometría</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" class="sr-only peer">
+        <div class="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+      </label>
+    </div>
+  </form>
+
+  <div class="mt-8 pt-6 border-t border-slate-700">
+    <h2 class="text-xl font-semibold text-white mb-4">Administración de Datos</h2>
+    <p class="text-slate-400 mb-4">Advertencia: Borrar los datos del portafolio restaurará la aplicación a su estado inicial. Esta acción es irreversible y eliminará todas sus transacciones y activos actuales.</p>
+    <button (click)="resetData()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+      Borrar Todos los Datos y Reiniciar
+    </button>
+  </div>
+</div>

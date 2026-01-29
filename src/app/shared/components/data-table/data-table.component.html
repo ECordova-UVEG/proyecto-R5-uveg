@@ -1,0 +1,22 @@
+<div class="overflow-x-auto">
+  <table class="min-w-full bg-white">
+    <thead class="bg-gray-800 text-white">
+      <tr>
+        <th *ngFor="let col of columns" class="text-left py-3 px-4 uppercase font-semibold text-sm">{{ col.label }}</th>
+        <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Acciones</th>
+      </tr>
+    </thead>
+    <tbody class="text-gray-700">
+      <tr *ngFor="let item of data; let i = index" class="border-b border-gray-200 hover:bg-gray-100" [ngClass]="{'bg-gray-50': i % 2 !== 0}">
+        <td *ngFor="let col of columns" class="py-3 px-4">
+          {{ getProperty(item, col.key) }}
+        </td>
+        <td class="py-3 px-4">
+          <button (click)="onActionButtonClick(item)" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-xs">
+            Ver
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

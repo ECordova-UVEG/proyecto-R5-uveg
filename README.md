@@ -1,27 +1,59 @@
-# InvestCore
+# InvestCore - Dashboard Financiero
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.17.
+Este proyecto es un dashboard financiero interactivo desarrollado con Angular 17, diseñado para simular la gestión de un portafolio de inversión. Utiliza tecnologías modernas para ofrecer una experiencia de usuario fluida y visualmente atractiva, incluyendo la integración de gráficos y la gestión de datos de mercado.
 
-## Development server
+## Tecnologías Clave:
+*   **Angular 17:** Framework frontend para la construcción de Single Page Applications.
+*   **Tailwind CSS:** Framework CSS utilitario para un diseño rápido y responsivo.
+*   **ApexCharts:** Librería de gráficos interactivos para la visualización de datos financieros.
+*   **Financial Modeling Prep API:** Fuente de datos de mercado en tiempo real (requiere API Key).
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Seguridad y Arquitectura
 
-## Code scaffolding
+### Carga de Datos y Autenticación:
+La aplicación implementa una arquitectura que prioriza la seguridad y la resiliencia:
+1.  **Acceso a la API Key:** La API Key de `financialmodelingprep.com` (o cualquier otra API externa) **solo se utiliza después de que el usuario ha iniciado sesión correctamente**.
+2.  **Manejo de Errores con "Fallback":** Si la API externa para obtener datos de mercado falla o excede los límites del plan gratuito, el sistema **degrada suavemente a un modo de simulación de datos**. Esto asegura que la aplicación siga siendo funcional y no bloquee al usuario, proporcionando una experiencia continua incluso sin conexión a la API en tiempo real.
+3.  **Protección de Rutas:** El acceso a las rutas principales de la aplicación (Dashboard, Listado, Configuración) está protegido mediante un `AuthGuard`, asegurando que solo los usuarios autenticados puedan acceder a ellas.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Estructura de Carpetas
 
-## Build
+La aplicación sigue una estructura modular para facilitar la escalabilidad y el mantenimiento:
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+*   `core/`: Contiene servicios singleton (ej. `AuthService`, `DataService`, `MarketDataService`), guards para proteger rutas (`auth.guard.ts`), y interceptores HTTP (`http-error.interceptor.ts`). Estos módulos son esenciales para la lógica central de la aplicación.
+*   `features/`: Aloja los componentes principales que representan las diferentes vistas o "páginas" de la aplicación (ej. `dashboard`, `listado`, `login`, `settings`).
+*   `shared/`: Incluye componentes reutilizables (ej. `KpiCardComponent`, `TransactionModalComponent`, `SkeletonComponent`), pipes personalizados (`CurrencyFormatPipe`) y otros elementos que pueden ser compartidos entre múltiples módulos de `features`.
 
-## Running unit tests
+## Guía de Instalación
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Sigue estos pasos para levantar el proyecto localmente:
 
-## Running end-to-end tests
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone <PENDIENTE URL>
+    cd investment-platform-ecr/invest-core
+    ```
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
+3.  **Configurar la API Key:**
+    *   Regístrate en [financialmodelingprep.com](https://financialmodelingprep.com/) para obtener tu API Key.
+    *   Edita el archivo `src/app/core/services/market-data.service.ts` y reemplaza `'PEGAR_AQUI_TU_CLAVE_DEL_DASHBOARD'` con tu clave real.
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+4.  **Iniciar el servidor de desarrollo:**
+    ```bash
+    ng serve
+    ```
+    La aplicación estará disponible en `http://localhost:4200/`.
 
-## Further help
+## Comandos Útiles
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+*   **Ejecutar Tests Unitarios con Cobertura:**
+    ```bash
+    ng test --code-coverage
+    ```
+*   **Compilar la aplicación para producción:**
+    ```bash
+    ng build
+    ```
