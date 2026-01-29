@@ -11,7 +11,15 @@ import { MarketDataService } from '../../core/services/market-data.service';
 
 const mockPortfolio = {
   summary: { totalValue: 50000, totalGainLoss: 2500, totalYieldPct: 0.05, allocation: {} },
-  assets: [{ ticker: 'AAPL', name: 'Apple', type: 'Stock', quantity: 10, avg_cost: 150, current_price: 155, category: 'Renta Variable' }],
+  assets: [{ 
+    ticker: 'AAPL', 
+    name: 'Apple', 
+    type: 'Stock', // TS lo ve como string
+    quantity: 10, 
+    avg_cost: 150, 
+    current_price: 155, 
+    category: 'Renta Variable' 
+  }],
   cashBalance: 10000,
   transactions: []
 };
@@ -27,7 +35,7 @@ describe('DashboardComponent', () => {
     const dataServiceSpy = jasmine.createSpyObj('DataService', 
       ['getPortfolioData', 'updateAssetPrices', 'getPortfolioHistory'],
       { 
-        // Usar un "getter" para mockData para que sea configurable
+        // Getter para mockData
         get mockData() { return { assets: mockPortfolio.assets }; },
         exchangeRates: { usd: 0, eur: 0 }
       }
@@ -38,11 +46,9 @@ describe('DashboardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DashboardComponent], // Componente Standalone
       providers: [
-        // REGLA 4: Proveer HTTP y Router
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        // REGLA 1: Proveer CurrencyPipe
         CurrencyPipe,
         { provide: DataService, useValue: dataServiceSpy },
         { provide: MarketDataService, useValue: marketServiceSpy },
@@ -53,7 +59,9 @@ describe('DashboardComponent', () => {
     dataService = TestBed.inject(DataService) as jasmine.SpyObj<DataService>;
     marketService = TestBed.inject(MarketDataService) as jasmine.SpyObj<MarketDataService>;
     
-    dataService.getPortfolioData.and.returnValue(of(mockPortfolio));
+    // CORRECCIÓN AQUÍ: Usamos 'as any' para evitar el conflicto de tipos estrictos en el mock
+    dataService.getPortfolioData.and.returnValue(of(mockPortfolio as any));
+    
     dataService.getPortfolioHistory.and.returnValue([]);
     marketService.getCurrencies.and.returnValue(of({ USD: 20.5, EUR: 21.8 }));
     marketService.getRealTimePrices.and.returnValue(of([{ symbol: 'AAPL', price: 155 }]));
