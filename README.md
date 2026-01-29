@@ -30,8 +30,8 @@ Sigue estos pasos para levantar el proyecto localmente:
 
 1.  **Clonar el repositorio:**
     ```bash
-    git clone <PENDIENTE URL>
-    cd investment-platform-ecr/invest-core
+    git clone https://github.com/EinarCR/InvestCore.git
+    cd /invest-core
     ```
 2.  **Instalar dependencias:**
     ```bash
@@ -39,7 +39,7 @@ Sigue estos pasos para levantar el proyecto localmente:
     ```
 3.  **Configurar la API Key:**
     *   Regístrate en [financialmodelingprep.com](https://financialmodelingprep.com/) para obtener tu API Key.
-    *   Edita el archivo `src/app/core/services/market-data.service.ts` y reemplaza `'PEGAR_AQUI_TU_CLAVE_DEL_DASHBOARD'` con tu clave real.
+    *   Edita el archivo `src/app/core/services/market-data.service.ts` y reemplaza `'Fusw8WYYOB2oUVNdVeaPe9H0LS2MwCKz'` con tu clave real.
 
 4.  **Iniciar el servidor de desarrollo:**
     ```bash
