@@ -32,7 +32,7 @@ import { catchError, map } from 'rxjs/operators';
 export class MarketDataService {
   private http = inject(HttpClient);
   
-  private apiKey = 'demo'; // Usa 'Fusw8WYYOB2oUVNdVeaPe9H0LS2MwCKz' para probar
+  private apiKey = 'Fusw8WYYOB2oUVNdVeaPe9H0LS2MwCKz';
   private baseUrl = 'https://financialmodelingprep.com/api/v3';
 
   /**
