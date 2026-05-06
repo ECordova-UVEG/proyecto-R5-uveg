@@ -74,3 +74,6 @@ El proyecto cuenta con una suite de pruebas robusta que cubre casos de éxito, e
 El proyecto está configurado para despliegue automático en Vercel.
 * **URL de Producción:** [https://invest-core.vercel.app/](https://invest-core.vercel.app/) (Ejemplo)
 * Cada push a la rama `main` dispara el pipeline de CI (Tests) y, si es exitoso, el CD (Deploy).
+
+
+## ESTA LINEA DE CÓDIGO ES UNA PRUEBA PARA MI PROYECTO ESCOLAR 
